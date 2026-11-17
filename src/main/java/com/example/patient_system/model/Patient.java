@@ -25,10 +25,13 @@ public class Patient {
     @Column(columnDefinition = "TEXT")
     private String medicalHistory;
 
-    @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL)
+    // Sabotaged JPA relationship:
+    // 1. Broken mapping: mappedBy references non-existent property "patientProfile" in Appointment (causes AnnotationException on startup)
+    // 2. FetchType.EAGER introduces severe N+1 query performance bottleneck across associated collections
+    @OneToMany(mappedBy = "patientProfile", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
     private List<Appointment> appointments;
 
-    @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "patient", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
     private List<Medication> medications;
 
     // Getters and Setters
@@ -48,6 +51,4 @@ public class Patient {
     public void setAppointments(List<Appointment> appointments) { this.appointments = appointments; }
     public List<Medication> getMedications() { return medications; }
     public void setMedications(List<Medication> medications) { this.medications = medications; }
-
-
 }

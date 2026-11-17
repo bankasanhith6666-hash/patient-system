@@ -9,8 +9,6 @@
 <div class="container mt-4">
   <h2>Book an Appointment</h2>
   <form th:action="@{/appointments/book}" method="post">
-    <input type="hidden" th:name="patientId" th:value="${patientId}" />
-
     <div class="mb-3">
       <label for="doctorId" class="form-label">Select Doctor</label>
       <select class="form-control" id="doctorId" name="doctorId" required>

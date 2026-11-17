@@ -4,12 +4,15 @@ import com.example.patient_system.model.Appointment;
 import com.example.patient_system.model.Doctor;
 import com.example.patient_system.model.Patient;
 import com.example.patient_system.repository.AppointmentRepository;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -18,12 +21,16 @@ import java.util.stream.Collectors;
 public class AppointmentService {
 
     private static final Logger logger = LoggerFactory.getLogger(AppointmentService.class);
+    private static final DateTimeFormatter HOUR_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH");
 
     @Autowired
     private AppointmentRepository appointmentRepository;
 
     @Autowired
     private DoctorService doctorService;
+
+    @Autowired
+    private MeterRegistry meterRegistry;
 
     public Appointment bookAppointment(Appointment appointment) {
         Patient patient = appointment.getPatient();
@@ -54,7 +61,18 @@ public class AppointmentService {
         }
         logger.info("Booking appointment for patientId={} with doctorId={} at {}",
                 patient.getId(), doctor.getId(), appointmentTime);
-        return appointmentRepository.save(appointment);
+
+        Appointment savedAppointment = appointmentRepository.save(appointment);
+
+        // The hour tag uses the server's local clock and counts when the booking is created.
+        String createdHour = LocalDateTime.now().format(HOUR_FORMAT);
+        Counter.builder("appointments.created")
+                .description("Number of appointments created, grouped by creation hour")
+                .tag("hour", createdHour)
+                .register(meterRegistry)
+                .increment();
+
+        return savedAppointment;
     }
 
     public List<Appointment> getAppointmentsByPatient(Patient patient) {
